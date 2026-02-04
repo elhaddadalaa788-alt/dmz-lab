@@ -68,3 +68,58 @@ interface GigabitEthernet0/2
 
 end
 write memory
+Static NAT Configuration
+The DMZ web server was published using static NAT: ip nat inside source static 192.168.2.10 192.168.3.1
+Interface NAT roles:
+interface g0/1
+ ip nat inside
+interface g0/2
+ ip nat outside
+ACL 100 – External HTTP Access to DMZ
+access-list 100 permit tcp any host 192.168.3.1 eq www
+access-list 100 deny ip any any
+Applied inbound on External interface:
+interface g0/2
+ ip access-group 100 in
+ACL 110 – Block DMZ → LAN Traffic
+access-list 110 deny ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255
+access-list 110 permit ip any any
+Applied inbound on DMZ interface:
+interface g0/1
+ ip access-group 110 in
+5. Verifications Performed:
+Successful Tests
+
+PC_Internal → Router gateway ping ✅
+
+PC_External → Router gateway ping ✅
+
+PC_External → DMZ Web Server via NAT (HTTP) ✅
+
+DMZ → LAN ping blocked (security enforcement) ✅
+
+Expected Failures (Security Behavior)
+
+PC_External → ICMP to DMZ public IP ❌ (blocked by ACL)
+
+DMZ → LAN access ❌ (blocked by ACL)
+
+Observed Issue
+
+PC_Internal → DMZ Web Server (HTTP)
+Result: ❌ Request timed out
+
+This behavior is consistent with ACL placement and filtering applied on the DMZ interface, which restricts inbound access to the DMZ network.
+6. Conclusions and Recommendations
+
+This lab demonstrated how NAT and ACLs can be combined to securely expose a DMZ service while protecting internal resources.
+
+Key takeaways:
+
+Interface placement of ACLs is critical and directly impacts allowed traffic
+
+Basic connectivity should always be verified before applying security rules
+
+Security enforcement was successfully validated through controlled failures
+
+For improvement, future configurations could explicitly allow LAN-to-DMZ HTTP traffic if required by business rules.
